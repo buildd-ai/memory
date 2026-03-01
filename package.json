@@ -1,0 +1,33 @@
+{
+  "name": "@buildd/memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:migrate": "bun run src/lib/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "mcp": "bun run src/mcp/server.ts"
+  },
+  "bin": {
+    "buildd-memory": "./dist/mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@neondatabase/serverless": "^0.9.0",
+    "drizzle-orm": "^0.30.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "drizzle-kit": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}
