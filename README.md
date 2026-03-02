@@ -70,7 +70,7 @@ Add to your `.mcp.json` (Claude Code, Cursor, etc.):
       "command": "npx",
       "args": ["@buildd/memory"],
       "env": {
-        "MEMORY_API_URL": "https://memory.buildd.ai",
+        "MEMORY_API_URL": "https://memory.buildd.dev",
         "MEMORY_API_KEY": "mem_your_key_here"
       }
     }
@@ -81,7 +81,7 @@ Add to your `.mcp.json` (Claude Code, Cursor, etc.):
 Or run the MCP server directly:
 
 ```bash
-MEMORY_API_URL=https://memory.buildd.ai MEMORY_API_KEY=mem_xxx bun run mcp
+MEMORY_API_URL=https://memory.buildd.dev MEMORY_API_KEY=mem_xxx bun run mcp
 ```
 
 ### MCP Actions
@@ -139,7 +139,7 @@ buildd-memory/
 2. Use the root key to create team API keys:
 
 ```bash
-curl -X POST https://memory.buildd.ai/api/keys \
+curl -X POST https://memory.buildd.dev/api/keys \
   -H "Authorization: Bearer $ROOT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "dev-team", "teamId": "my-team"}'

@@ -6,7 +6,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-const BASE_URL = process.env.MEMORY_API_URL || "http://localhost:3002";
+const BASE_URL = process.env.MEMORY_API_URL || "https://memory.buildd.dev";
 const API_KEY = process.env.MEMORY_API_KEY || "";
 
 if (!API_KEY) {
