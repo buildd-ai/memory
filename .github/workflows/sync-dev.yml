@@ -1,0 +1,36 @@
+name: Sync dev from main
+
+on:
+  push:
+    branches: [main]
+  delete:
+    branches: [dev]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync dev branch
+        run: |
+          git fetch origin
+
+          if git ls-remote --exit-code --heads origin dev >/dev/null 2>&1; then
+            # dev exists — fast-forward it to main
+            git checkout dev
+            git merge --ff-only origin/main || {
+              echo "::warning::Cannot fast-forward dev to main — manual merge required"
+              exit 0
+            }
+            git push origin dev
+          else
+            # dev was deleted — recreate from main
+            git checkout -b dev origin/main
+            git push -u origin dev
+          fi

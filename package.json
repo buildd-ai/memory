@@ -10,13 +10,16 @@
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "bun run src/lib/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "mcp": "bun run src/mcp/server.ts"
+    "mcp": "bun run src/mcp/server.ts",
+    "release": "bash scripts/release.sh",
+    "release:hotfix": "bash scripts/release.sh --hotfix",
+    "cleanup-branches": "bash scripts/release.sh --cleanup"
   },
   "bin": {
     "buildd-memory": "./dist/mcp-server.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@neondatabase/serverless": "^0.9.0",
     "drizzle-orm": "^0.30.0",
     "next": "^15.0.0",
