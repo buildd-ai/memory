@@ -1,0 +1,118 @@
+name: Cleanup Neon Schema Branches
+
+# Cleans up isolated Neon branches created for schema-change PRs.
+# No paths filter — closed PRs don't have diffs to match against.
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete Neon branch
+        run: |
+          set -euo pipefail
+
+          BRANCH_NAME="preview/pr-${{ github.event.pull_request.number }}"
+
+          # Find Neon branch
+          RESPONSE=""
+          for attempt in 1 2 3; do
+            RESPONSE=$(curl -sf \
+              -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" 2>&1) && break
+            echo "::warning::Neon branch list attempt $attempt failed, retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
+          done
+
+          if [ -z "$RESPONSE" ]; then
+            echo "::error::Failed to list Neon branches after 3 attempts"
+            exit 1
+          fi
+
+          BRANCH_ID=$(echo "$RESPONSE" | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
+
+          if [ -z "$BRANCH_ID" ] || [ "$BRANCH_ID" = "null" ]; then
+            echo "No Neon branch for this PR (not a schema-change PR)"
+            exit 0
+          fi
+
+          # Delete Neon branch with retries
+          DELETED=false
+          for attempt in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+              -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID")
+
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "Deleted Neon branch: $BRANCH_NAME ($BRANCH_ID)"
+              DELETED=true
+              break
+            fi
+            echo "::warning::Neon branch delete attempt $attempt failed (HTTP $HTTP_CODE), retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
+          done
+
+          if [ "$DELETED" != "true" ]; then
+            echo "::error::Failed to delete Neon branch $BRANCH_NAME ($BRANCH_ID) after 3 attempts"
+            exit 1
+          fi
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+
+      - name: Delete Vercel env override
+        run: |
+          set -euo pipefail
+
+          GIT_BRANCH="${{ github.head_ref }}"
+
+          # Find Vercel env override
+          RESPONSE=""
+          for attempt in 1 2 3; do
+            RESPONSE=$(curl -sf \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env" 2>&1) && break
+            echo "::warning::Vercel env list attempt $attempt failed, retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
+          done
+
+          if [ -z "$RESPONSE" ]; then
+            echo "::error::Failed to list Vercel env vars after 3 attempts"
+            exit 1
+          fi
+
+          EXISTING_ID=$(echo "$RESPONSE" | jq -r --arg branch "$GIT_BRANCH" \
+            '.envs[] | select(.key == "DATABASE_URL" and .gitBranch == $branch) | .id')
+
+          if [ -z "$EXISTING_ID" ] || [ "$EXISTING_ID" = "null" ]; then
+            echo "No Vercel DATABASE_URL override for branch $GIT_BRANCH"
+            exit 0
+          fi
+
+          # Delete Vercel env override with retries
+          DELETED=false
+          for attempt in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID")
+
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "Removed Vercel DATABASE_URL override for branch $GIT_BRANCH"
+              DELETED=true
+              break
+            fi
+            echo "::warning::Vercel env delete attempt $attempt failed (HTTP $HTTP_CODE), retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
+          done
+
+          if [ "$DELETED" != "true" ]; then
+            echo "::error::Failed to delete Vercel env override for branch $GIT_BRANCH after 3 attempts"
+            exit 1
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
