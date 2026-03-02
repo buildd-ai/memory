@@ -52,6 +52,30 @@ export async function authenticate(req: NextRequest): Promise<AuthContext | Next
 }
 
 /**
+ * Authenticate a raw API key string.
+ * Returns auth context or null if invalid.
+ */
+export async function authenticateKey(rawKey: string): Promise<AuthContext | null> {
+  // Check root key for bootstrapping
+  if (process.env.ROOT_API_KEY && rawKey === process.env.ROOT_API_KEY) {
+    return { teamId: 'root', keyId: 'root', readOnly: false };
+  }
+
+  const hashed = hashKey(rawKey);
+  const record = await db.query.apiKeys.findFirst({
+    where: eq(apiKeys.key, hashed),
+  });
+
+  if (!record) return null;
+
+  return {
+    teamId: record.teamId,
+    keyId: record.id,
+    readOnly: record.readOnly,
+  };
+}
+
+/**
  * Generate a new API key with prefix `mem_`.
  */
 export function generateApiKey(): { plaintext: string; hash: string; prefix: string } {
