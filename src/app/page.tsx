@@ -26,7 +26,7 @@ export default function Home() {
       "command": "npx",
       "args": ["@buildd/memory"],
       "env": {
-        "MEMORY_API_URL": "https://memory.buildd.ai",
+        "MEMORY_API_URL": "https://memory.buildd.dev",
         "MEMORY_API_KEY": "mem_your_key_here"
       }
     }
