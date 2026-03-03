@@ -21,9 +21,12 @@ jobs:
           # Find Neon branch
           RESPONSE=""
           for attempt in 1 2 3; do
-            RESPONSE=$(curl -sf \
+            if RESPONSE=$(curl -sf \
               -H "Authorization: Bearer $NEON_API_KEY" \
-              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" 2>&1) && break
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches"); then
+              break
+            fi
+            RESPONSE=""
             echo "::warning::Neon branch list attempt $attempt failed, retrying in $((attempt * 5))s..."
             sleep $((attempt * 5))
           done
@@ -73,9 +76,12 @@ jobs:
           # Find Vercel env override
           RESPONSE=""
           for attempt in 1 2 3; do
-            RESPONSE=$(curl -sf \
+            if RESPONSE=$(curl -sf \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env" 2>&1) && break
+              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env"); then
+              break
+            fi
+            RESPONSE=""
             echo "::warning::Vercel env list attempt $attempt failed, retrying in $((attempt * 5))s..."
             sleep $((attempt * 5))
           done
