@@ -40,10 +40,16 @@ export const memories = pgTable('memories', {
 
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+
+  // Lifecycle management
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+  lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }),
 }, (t) => ({
   teamIdx: index('memories_team_idx').on(t.teamId),
   typeIdx: index('memories_type_idx').on(t.type),
   projectIdx: index('memories_project_idx').on(t.project),
   teamProjectIdx: index('memories_team_project_idx').on(t.teamId, t.project),
   createdAtIdx: index('memories_created_at_idx').on(t.createdAt),
+  archivedAtIdx: index('memories_archived_at_idx').on(t.archivedAt),
+  lastAccessedAtIdx: index('memories_last_accessed_at_idx').on(t.lastAccessedAt),
 }));

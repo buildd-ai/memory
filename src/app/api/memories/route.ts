@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { memories } from '@/lib/schema';
 import { authenticate } from '@/lib/auth';
-import { desc, eq, and, ilike, or } from 'drizzle-orm';
+import { desc, eq, and, ilike, or, isNull, isNotNull, sql } from 'drizzle-orm';
 
 const VALID_TYPES = ['discovery', 'decision', 'gotcha', 'pattern', 'architecture', 'summary'];
 
@@ -15,10 +15,20 @@ export async function GET(req: NextRequest) {
   const type = url.searchParams.get('type');
   const project = url.searchParams.get('project');
   const search = url.searchParams.get('search');
+  const archived = url.searchParams.get('archived');
+  const staleDays = url.searchParams.get('stale_days');
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
   const offset = parseInt(url.searchParams.get('offset') || '0');
 
   const conditions = [eq(memories.teamId, auth.teamId)];
+
+  // Archive filter: ?archived=true shows only archived, default excludes archived
+  if (archived === 'true') {
+    conditions.push(isNotNull(memories.archivedAt));
+  } else {
+    conditions.push(isNull(memories.archivedAt));
+  }
+
   if (type && VALID_TYPES.includes(type)) conditions.push(eq(memories.type, type as any));
   if (project) conditions.push(eq(memories.project, project));
   if (search) {
@@ -26,6 +36,16 @@ export async function GET(req: NextRequest) {
       ilike(memories.title, `%${search}%`),
       ilike(memories.content, `%${search}%`),
     )!);
+  }
+
+  // Stale filter: ?stale_days=N returns memories not accessed in N days
+  if (staleDays) {
+    const days = parseInt(staleDays);
+    if (days > 0) {
+      conditions.push(
+        sql`COALESCE(${memories.lastAccessedAt}, ${memories.createdAt}) < NOW() - INTERVAL '${sql.raw(String(days))} days'`
+      );
+    }
   }
 
   const results = await db
