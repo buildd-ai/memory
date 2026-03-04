@@ -45,7 +45,7 @@ const server = new Server(
       "Workflow:",
       "1. At session start, call `context` to load relevant memories",
       "2. When you learn something important, call `save` to persist it",
-      "3. Use `search` to find specific memories when needed",
+      "3. Use `search` to find specific memories, then `batch` to fetch full content",
       "",
       "Memory types: discovery, decision, gotcha, pattern, architecture, summary",
     ].join("\n"),
@@ -57,6 +57,7 @@ const server = new Server(
 const ACTIONS = [
   "context",
   "search",
+  "batch",
   "save",
   "get",
   "update",
@@ -68,7 +69,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "memory",
       description:
-        "Search, save, and manage shared team memories. Actions: context, search, save, get, update, delete.",
+        "Search, save, and manage shared team memories. Actions: context, search, batch, save, get, update, delete.",
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -88,6 +89,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
               "Action-specific parameters:",
               "  context: { project? }",
               "  search: { query?, type?, project?, files?, limit?, offset? }",
+              "  batch: { ids } — fetch full content for multiple memories (1-20 IDs)",
               "  save: { type, title, content, project?, tags?, files?, source? }",
               "  get: { id }",
               "  update: { id, type?, title?, content?, project?, tags?, files?, source? }",
@@ -156,6 +158,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return text(
           `Found ${data.total} memories:\n\n${lines.join("\n")}`
         );
+      }
+
+      case "batch": {
+        const ids = params.ids;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return { ...text("Required: ids (array of memory IDs, 1-20)"), isError: true };
+        }
+        if (ids.length > 20) {
+          return { ...text("Maximum 20 IDs per batch request"), isError: true };
+        }
+        const qs = `?ids=${ids.map(String).join(",")}`;
+        const data = (await api(`/api/memories/batch${qs}`)) as {
+          memories: Array<{
+            id: string;
+            type: string;
+            title: string;
+            content: string;
+            project?: string;
+            tags?: string[];
+            files?: string[];
+            source?: string;
+          }>;
+        };
+        if (data.memories.length === 0) {
+          return text("No memories found for the given IDs.");
+        }
+        const sections = data.memories.map((m) => {
+          const meta = [
+            `Type: ${m.type}`,
+            m.project && `Project: ${m.project}`,
+            m.tags?.length && `Tags: ${m.tags.join(", ")}`,
+            m.files?.length && `Files: ${m.files.join(", ")}`,
+          ]
+            .filter(Boolean)
+            .join(" | ");
+          return `## ${m.title}\n${meta}\n\n${m.content}`;
+        });
+        return text(sections.join("\n\n---\n\n"));
       }
 
       case "save": {
