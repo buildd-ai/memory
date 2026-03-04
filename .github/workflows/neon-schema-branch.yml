@@ -20,13 +20,29 @@ jobs:
       - name: Create Neon branch for schema changes
         id: neon
         run: |
+          # Validate required secrets
+          if [ -z "$NEON_API_KEY" ] || [ -z "$NEON_PROJECT_ID" ]; then
+            echo "::error::Missing required Neon secrets (NEON_API_KEY, NEON_PROJECT_ID). Configure them in GitHub repo settings."
+            exit 1
+          fi
+
           BRANCH_NAME="preview/pr-${{ github.event.pull_request.number }}"
 
           # Check if branch already exists
-          EXISTING=$(curl -s \
+          RESPONSE_LIST=$(curl -s -w "\n%{http_code}" \
             -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
-            | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches")
+
+          HTTP_CODE=$(echo "$RESPONSE_LIST" | tail -1)
+          BODY=$(echo "$RESPONSE_LIST" | sed '$d')
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Neon API returned HTTP $HTTP_CODE when listing branches"
+            echo "$BODY"
+            exit 1
+          fi
+
+          EXISTING=$(echo "$BODY" | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
 
           if [ -n "$EXISTING" ]; then
             echo "Neon branch already exists: $EXISTING"
@@ -49,9 +65,18 @@ jobs:
           fi
 
           # Get the connection URI for the branch
-          ENDPOINTS=$(curl -s \
+          ENDPOINTS_RESPONSE=$(curl -s -w "\n%{http_code}" \
             -H "Authorization: Bearer $NEON_API_KEY" \
             "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/endpoints")
+
+          EP_HTTP_CODE=$(echo "$ENDPOINTS_RESPONSE" | tail -1)
+          ENDPOINTS=$(echo "$ENDPOINTS_RESPONSE" | sed '$d')
+
+          if [ "$EP_HTTP_CODE" != "200" ]; then
+            echo "::error::Neon API returned HTTP $EP_HTTP_CODE when fetching endpoints"
+            echo "$ENDPOINTS"
+            exit 1
+          fi
 
           HOST=$(echo "$ENDPOINTS" | jq -r '.endpoints[0].host')
           DATABASE_URL="postgresql://${NEON_DB_USER}:${NEON_DB_PASSWORD}@${HOST}/neondb?sslmode=require"
