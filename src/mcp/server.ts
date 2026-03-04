@@ -62,6 +62,8 @@ const ACTIONS = [
   "get",
   "update",
   "delete",
+  "archive",
+  "cleanup",
 ] as const;
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -69,7 +71,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "memory",
       description:
-        "Search, save, and manage shared team memories. Actions: context, search, batch, save, get, update, delete.",
+        "Search, save, and manage shared team memories. Actions: context, search, batch, save, get, update, delete, archive, cleanup.",
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -94,6 +96,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
               "  get: { id }",
               "  update: { id, type?, title?, content?, project?, tags?, files?, source? }",
               "  delete: { id }",
+              "  archive: { ids } — bulk archive memories (1-50 IDs)",
+              "  cleanup: { project?, stale_days? } — list stale memories not accessed in N days (default 90)",
             ].join("\n"),
           },
         },
@@ -266,7 +270,52 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return { ...text("Required: id"), isError: true };
         }
         await api(`/api/memories/${params.id}`, { method: "DELETE" });
-        return text(`Deleted memory ${params.id}`);
+        return text(`Archived memory ${params.id}`);
+      }
+
+      case "archive": {
+        const ids = params.ids;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return { ...text("Required: ids (array of memory IDs, 1-50)"), isError: true };
+        }
+        if (ids.length > 50) {
+          return { ...text("Maximum 50 IDs per archive request"), isError: true };
+        }
+        const data = (await api("/api/memories/bulk-archive", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        })) as { archived: number; ids: string[] };
+        return text(`Archived ${data.archived} memories`);
+      }
+
+      case "cleanup": {
+        const staleDays = params.stale_days ? Number(params.stale_days) : 90;
+        const searchParams = new URLSearchParams();
+        searchParams.set("stale_days", String(staleDays));
+        searchParams.set("limit", "50");
+        if (params.project) searchParams.set("project", String(params.project));
+        const data = (await api(`/api/memories?${searchParams.toString()}`)) as {
+          memories: Array<{
+            id: string;
+            title: string;
+            type: string;
+            project?: string;
+            lastAccessedAt?: string;
+            createdAt: string;
+          }>;
+        };
+        if (data.memories.length === 0) {
+          return text(`No stale memories found (threshold: ${staleDays} days).`);
+        }
+        const lines = data.memories.map((m) => {
+          const lastAccess = m.lastAccessedAt
+            ? `last accessed: ${m.lastAccessedAt.slice(0, 10)}`
+            : `created: ${m.createdAt.slice(0, 10)}, never accessed`;
+          return `- **${m.title}** (${m.type}) [id: ${m.id}] — ${lastAccess}`;
+        });
+        return text(
+          `Found ${data.memories.length} stale memories (not accessed in ${staleDays}+ days):\n\n${lines.join("\n")}\n\nUse \`archive\` action with these IDs to archive them.`
+        );
       }
 
       default:
