@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { memories } from '@/lib/schema';
 import { authenticate } from '@/lib/auth';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 
 // GET /api/memories/batch?ids=id1,id2,id3 — Fetch full content for specific memories
 export async function GET(req: NextRequest) {
@@ -24,7 +24,15 @@ export async function GET(req: NextRequest) {
   const results = await db
     .select()
     .from(memories)
-    .where(and(eq(memories.teamId, auth.teamId), inArray(memories.id, ids)));
+    .where(and(eq(memories.teamId, auth.teamId), inArray(memories.id, ids), isNull(memories.archivedAt)));
+
+  // Fire-and-forget lastAccessedAt update
+  if (results.length > 0) {
+    db.update(memories)
+      .set({ lastAccessedAt: new Date() })
+      .where(inArray(memories.id, results.map(r => r.id)))
+      .catch(() => {});
+  }
 
   return NextResponse.json({ memories: results });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { memories } from '@/lib/schema';
 import { authenticate } from '@/lib/auth';
-import { desc, eq, and, count } from 'drizzle-orm';
+import { desc, eq, and, count, isNull, inArray } from 'drizzle-orm';
 
 const TYPE_ORDER = ['gotcha', 'architecture', 'pattern', 'decision', 'discovery', 'summary'] as const;
 const MAX_CHARS = 16000; // ~4000 tokens
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const project = url.searchParams.get('project');
 
-  const conditions = [eq(memories.teamId, auth.teamId)];
+  const conditions = [eq(memories.teamId, auth.teamId), isNull(memories.archivedAt)];
   if (project) conditions.push(eq(memories.project, project));
 
   const allMemories = await db
@@ -53,6 +53,14 @@ export async function GET(req: NextRequest) {
       markdown += `- **${m.title}**${projectHint}: ${truncated}${fileHint}\n`;
     }
     markdown += '\n';
+  }
+
+  // Fire-and-forget lastAccessedAt update
+  if (allMemories.length > 0) {
+    db.update(memories)
+      .set({ lastAccessedAt: new Date() })
+      .where(inArray(memories.id, allMemories.map(m => m.id)))
+      .catch(() => {});
   }
 
   // Truncate to stay within token budget

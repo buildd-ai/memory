@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { memories } from '@/lib/schema';
 import { authenticate } from '@/lib/auth';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 
 // GET /api/memories/[id]
 export async function GET(
@@ -21,6 +21,12 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Fire-and-forget lastAccessedAt update
+  db.update(memories)
+    .set({ lastAccessedAt: new Date() })
+    .where(eq(memories.id, id))
+    .catch(() => {});
+
   return NextResponse.json({ memory });
 }
 
@@ -37,7 +43,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { type, title, content, project, tags, files, source } = body;
+  const { type, title, content, project, tags, files, source, archived } = body;
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (type) updateData.type = type;
@@ -47,6 +53,7 @@ export async function PATCH(
   if (tags) updateData.tags = tags;
   if (files) updateData.files = files;
   if (source !== undefined) updateData.source = source || null;
+  if (archived === false) updateData.archivedAt = null;
 
   const [updated] = await db
     .update(memories)
@@ -73,12 +80,13 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const [deleted] = await db
-    .delete(memories)
-    .where(and(eq(memories.id, id), eq(memories.teamId, auth.teamId)))
+  const [archived] = await db
+    .update(memories)
+    .set({ archivedAt: new Date() })
+    .where(and(eq(memories.id, id), eq(memories.teamId, auth.teamId), isNull(memories.archivedAt)))
     .returning();
 
-  if (!deleted) {
+  if (!archived) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
