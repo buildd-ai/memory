@@ -1,0 +1,42 @@
+{
+  "name": "@buildd-ai/knowledge-store",
+  "version": "0.1.0",
+  "description": "DB-agnostic hybrid (vector + lexical RRF) retrieval engine with reranking, chunking, recency decay, and an entity knowledge graph. Backed by Postgres + pgvector; inject any @neondatabase/serverless Drizzle handle.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema.sql": "./schema.sql"
+  },
+  "files": [
+    "dist",
+    "schema.sql",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buildd-ai/memory.git",
+    "directory": "packages/knowledge-store"
+  },
+  "license": "UNLICENSED"
+}

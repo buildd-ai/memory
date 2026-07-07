@@ -1,0 +1,30 @@
+name: Publish @buildd/knowledge-store
+
+# Publish on a version tag (e.g. knowledge-store-v0.1.0) or manually.
+on:
+  push:
+    tags: ['knowledge-store-v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # lets the built-in GITHUB_TOKEN publish to GH Packages
+    defaults:
+      run:
+        working-directory: packages/knowledge-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: '@buildd-ai'
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
