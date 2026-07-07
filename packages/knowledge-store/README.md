@@ -1,4 +1,4 @@
-# @buildd/knowledge-store
+# @buildd-ai/knowledge-store
 
 DB-agnostic hybrid retrieval engine, extracted from `@buildd/core` so buildd, the
 memory service, and cue (dispatch-family) can share one implementation instead of
@@ -17,7 +17,7 @@ database.
 ## Usage
 
 ```ts
-import { PgVectorStore, getVoyageEmbedder, getVoyageReranker } from '@buildd/knowledge-store';
+import { PgVectorStore, getVoyageEmbedder, getVoyageReranker } from '@buildd-ai/knowledge-store';
 import { db } from './your-app/db'; // any @neondatabase/serverless Drizzle handle
 
 const store = new PgVectorStore(db, getVoyageEmbedder(), getVoyageReranker());

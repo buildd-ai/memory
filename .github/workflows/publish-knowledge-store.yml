@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com
-          scope: '@buildd'
+          scope: '@buildd-ai'
       - run: bun install --frozen-lockfile
       - run: bun run build
       - run: npm publish
