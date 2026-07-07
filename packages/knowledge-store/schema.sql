@@ -1,7 +1,8 @@
--- @buildd/knowledge-store — canonical schema for consumers (buildd, memory service, cue).
--- Idempotent. Every statement separated by `--> statement-breakpoint` so Neon/HTTP
--- drivers that reject multi-command prepared statements can split on it.
--- namespace convention: "{scopeId}:{corpus}" — scopeId is tenant/workspace/team.
+-- @buildd-ai/knowledge-store — canonical schema for consumers (buildd, memory service, cue).
+-- Idempotent. Statements are delimited by the drizzle statement-breakpoint marker
+-- (see drizzle migrations) so HTTP drivers can split multi-command SQL.
+-- NOTE: keep that marker token out of comments — drizzle splits the file on it.
+-- namespace convention: scopeId:corpus (scopeId is tenant/workspace/team).
 
 CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
 
