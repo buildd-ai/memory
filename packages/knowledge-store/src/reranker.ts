@@ -1,4 +1,4 @@
-import type { Reranker, QueryResult } from './types';
+import type { Reranker, QueryResult } from './types.js';
 
 const VOYAGE_RERANK_URL = 'https://api.voyageai.com/v1/rerank';
 const DEFAULT_MODEL = 'rerank-2.5';

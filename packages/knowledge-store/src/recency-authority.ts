@@ -1,4 +1,4 @@
-import type { Corpus, QueryResult } from './types';
+import type { Corpus, QueryResult } from './types.js';
 
 // ── Corpus authority weights ──────────────────────────────────────────────────
 // Higher = more authoritative. Used to weight the final score.

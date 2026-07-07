@@ -1,4 +1,4 @@
-import type { Embedder, EmbedInputType, Corpus } from './types';
+import type { Embedder, EmbedInputType, Corpus } from './types.js';
 
 const VOYAGE_API_URL = 'https://api.voyageai.com/v1/embeddings';
 const DEFAULT_MODEL = 'voyage-4-large';

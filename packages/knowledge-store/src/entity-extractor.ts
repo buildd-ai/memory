@@ -1,5 +1,5 @@
-import type { EntityKind, EntityUpsert } from './types';
-import type { Corpus } from './types';
+import type { EntityKind, EntityUpsert } from './types.js';
+import type { Corpus } from './types.js';
 
 export interface ExtractEntityInput {
   content: string;

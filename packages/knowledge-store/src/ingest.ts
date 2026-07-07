@@ -1,6 +1,6 @@
-import type { KnowledgeStore, UpsertChunk, Corpus } from './types';
-import { chunkMarkdown, chunkCode, type ChunkOptions, type ChunkPiece } from './chunker';
-import { buildNamespace } from './pg-vector-store';
+import type { KnowledgeStore, UpsertChunk, Corpus } from './types.js';
+import { chunkMarkdown, chunkCode, type ChunkOptions, type ChunkPiece } from './chunker.js';
+import { buildNamespace } from './pg-vector-store.js';
 
 // Phase 2 ingestion: turn source files (code, docs) into multiple retrievable
 // chunks. A file becomes N chunks whose ids are `path#startLine` — stable

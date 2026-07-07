@@ -6,8 +6,8 @@ import type {
   PendingRef,
   RelationRef,
   KnowledgeDb,
-} from './types';
-import { extractEntities } from './entity-extractor';
+} from './types.js';
+import { extractEntities } from './entity-extractor.js';
 
 // ── Edge weight defaults per type ─────────────────────────────────────────────
 
@@ -349,7 +349,7 @@ export async function buildOutcomeOfEdge(
   const taskEntityId = await findEntityId(db, workspaceId, 'task', `task:${taskId}`);
   const missionEntityId = await findEntityId(db, workspaceId, 'mission', `mission:${missionId}`);
   if (!taskEntityId || !missionEntityId) return;
-  const { upsertEdge } = await import('./entity-resolver');
+  const { upsertEdge } = await import('./entity-resolver.js');
   await upsertEdge(
     db, workspaceId, taskEntityId, missionEntityId,
     'outcome_of', EDGE_WEIGHTS.outcome_of,
@@ -367,7 +367,7 @@ export async function buildAgentRelationEdges(
   relations: RelationRef[],
   sourceChunkId: string | null = null,
 ): Promise<void> {
-  const { upsertEdge } = await import('./entity-resolver');
+  const { upsertEdge } = await import('./entity-resolver.js');
   for (const rel of relations) {
     const fromId = await resolveByAliasDb(db, workspaceId, rel.from);
     const toId = await resolveByAliasDb(db, workspaceId, rel.to);

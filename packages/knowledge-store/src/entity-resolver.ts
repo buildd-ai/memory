@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { EntityKind, EntityUpsert, PendingRef, EntityRef, EntityBinding, KnowledgeDb } from './types';
+import type { EntityKind, EntityUpsert, PendingRef, EntityRef, EntityBinding, KnowledgeDb } from './types.js';
 
 type Db = KnowledgeDb;
 

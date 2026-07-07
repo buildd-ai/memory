@@ -1,6 +1,6 @@
 {
   "name": "@buildd-ai/knowledge-store",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DB-agnostic hybrid (vector + lexical RRF) retrieval engine with reranking, chunking, recency decay, and an entity knowledge graph. Backed by Postgres + pgvector; inject any @neondatabase/serverless Drizzle handle.",
   "type": "module",
   "main": "./dist/index.js",

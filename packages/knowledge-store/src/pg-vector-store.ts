@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
-import type { KnowledgeStore, UpsertChunk, QueryResult, QueryParams, Embedder, Reranker, Corpus, KnowledgeDb } from './types';
-import { applyRerank } from './reranker';
-import { getCodeEmbedder, isCodeCorpus } from './voyage-embedder';
-import { applyRecencyAuthority } from './recency-authority';
+import type { KnowledgeStore, UpsertChunk, QueryResult, QueryParams, Embedder, Reranker, Corpus, KnowledgeDb } from './types.js';
+import { applyRerank } from './reranker.js';
+import { getCodeEmbedder, isCodeCorpus } from './voyage-embedder.js';
+import { applyRecencyAuthority } from './recency-authority.js';
 import { createHash } from 'crypto';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

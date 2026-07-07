@@ -15,7 +15,7 @@
  * - Very large content is truncated to a sane cap so we never embed full diffs
  *   or megabyte artifacts.
  */
-import type { UpsertChunk } from './types';
+import type { UpsertChunk } from './types.js';
 
 /** Max characters of free-form content embedded in a single card. ~8KB. */
 export const CARD_CONTENT_CAP = 8000;
