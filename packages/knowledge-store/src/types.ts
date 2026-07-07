@@ -53,7 +53,8 @@ export type Corpus =
   | 'artifact'
   | 'pr'
   | 'plan'
-  | 'session';
+  | 'session'
+  | 'email';
 export type QueryMode = 'hybrid' | 'vector' | 'lexical';
 
 export interface UpsertChunk {

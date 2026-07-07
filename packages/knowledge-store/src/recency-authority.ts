@@ -13,6 +13,7 @@ export const CORPUS_AUTHORITY: Record<Corpus, number> = {
   task:     0.4,
   artifact: 0.4,
   session:  0.2,
+  email:    0.6,
 };
 
 // ── Recency decay half-lives (days) ──────────────────────────────────────────
@@ -28,6 +29,7 @@ export const HALF_LIFE_DAYS: Record<Corpus, number> = {
   task:     30,
   artifact: 30,
   session:  7,
+  email:    120,
 };
 
 /**
