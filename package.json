@@ -30,7 +30,7 @@
     "@types/bun": "latest",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
-    "drizzle-kit": "^0.20.0",
+    "drizzle-kit": "^0.31.0",
     "typescript": "^5.4.0"
   }
 }
