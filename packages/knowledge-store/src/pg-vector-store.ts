@@ -184,7 +184,7 @@ export class PgVectorStore implements KnowledgeStore {
   }
 
   async query(namespace: string, params: QueryParams): Promise<QueryResult[]> {
-    const { text, mode = 'hybrid', topK = 10, filters, useGraph = true, history = false } = params;
+    const { text, mode = 'hybrid', topK = 10, filters, useGraph = true, history = false, recencyAuthority = true } = params;
     const db = this.db;
     const corpus = namespace.split(':')[1] as Corpus;
     const activeEmbedder = this._selectEmbedder(corpus);
@@ -279,8 +279,10 @@ export class PgVectorStore implements KnowledgeStore {
       results = this._toResults(rows, scoreMap, ids);
     }
 
-    // Phase 1: apply recency × authority reranking
-    applyRecencyAuthority(results, new Date());
+    // Recency x authority is applied in _finalize, *after* rerank, not here.
+    // Applying it at this point meant the reranker overwrote it, so the term
+    // was computed and discarded whenever a reranker was configured — see
+    // _finalize.
 
     // Phase 3: 1-hop graph expansion (best-effort — skipped if tables don't exist)
     if (useGraph && results.length > 0) {
@@ -294,7 +296,7 @@ export class PgVectorStore implements KnowledgeStore {
     // Sort by final score DESC before passing to reranker
     results.sort((a, b) => b.score - a.score);
 
-    return this._finalize(results, text, limit);
+    return this._finalize(results, text, limit, recencyAuthority);
   }
 
   /**
@@ -428,10 +430,43 @@ export class PgVectorStore implements KnowledgeStore {
     }
   }
 
-  private async _finalize(results: QueryResult[], text: string, limit: number): Promise<QueryResult[]> {
-    if (!this.reranker || results.length <= 1) return results.slice(0, limit);
-    const reranked = await applyRerank(this.reranker, text, results, limit);
-    return reranked.slice(0, limit);
+  /**
+   * Rerank (when configured), then apply corpus authority x recency decay to
+   * whatever score survived.
+   *
+   * Order matters and used to be wrong. `applyRecencyAuthority` ran before
+   * `applyRerank`, and `applyRerank` *overwrites* `score` — so with a reranker
+   * the age/authority term was computed and thrown away, and without one it
+   * was the entire ranking. Same code, two different ranking semantics, which
+   * meant a consumer's tests and its production could not agree no matter how
+   * carefully either was written.
+   *
+   * Applying it here instead means one policy in both regimes: the reranker
+   * decides relevance, then age and authority weight it. Callers that own
+   * these signals themselves pass `recencyAuthority: false`.   *
+   * Known limitation: applyRerank receives `limit`, so a real reranker cuts
+   * candidates by relevance before age is considered. Widening that window is a
+   * separate change.
+   */
+  private async _finalize(
+    results: QueryResult[],
+    text: string,
+    limit: number,
+    recencyAuthority: boolean,
+  ): Promise<QueryResult[]> {
+    let out = results;
+
+    if (this.reranker && results.length > 1) {
+      out = await applyRerank(this.reranker, text, results, limit);
+    }
+
+    if (recencyAuthority && out.length > 0) {
+      applyRecencyAuthority(out, new Date());
+      // Re-sort: the weighting changed the ordering the reranker produced.
+      out.sort((a, b) => b.score - a.score);
+    }
+
+    return out.slice(0, limit);
   }
 
   async delete(namespace: string, ids: string[]): Promise<void> {

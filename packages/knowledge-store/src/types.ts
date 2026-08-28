@@ -102,6 +102,18 @@ export interface QueryParams {
   useGraph?: boolean;
   /** Include superseded (is_current=false) chunks. Default false. */
   history?: boolean;
+  /**
+   * Apply the built-in corpus-authority x recency decay. Default true.
+   *
+   * As of 0.2.0 this is applied *after* rerank, so it affects the returned
+   * ordering in both regimes. Previously it ran before `applyRerank`, which
+   * overwrites `score` — so the term was the entire ranking without a reranker
+   * and was silently discarded with one.
+   *
+   * Pass false when the caller owns age and authority policy itself; the store
+   * then returns retrieval relevance only, and nothing double-penalises age.
+   */
+  recencyAuthority?: boolean;
 }
 
 // ── KnowledgeStore interface ──────────────────────────────────────────────────
