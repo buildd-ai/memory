@@ -38,9 +38,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 });
   }
 
-  // Root key can create keys for any team, otherwise scoped to own team
-  const targetTeam = auth.teamId === 'root' && teamId ? teamId : auth.teamId;
-  if (auth.teamId === 'root' && !teamId) {
+  // 'root' is a reserved synthetic team ID that grants special privileges.
+  // Never allow a real DB key to be created with this teamId.
+  if (teamId === 'root') {
+    return NextResponse.json({ error: 'teamId "root" is reserved' }, { status: 400 });
+  }
+
+  // Use keyId (UUID from DB) for root privilege check — teamId is forgeable via a
+  // DB row, but keyId for a real DB-backed key is always a UUID, never the string 'root'.
+  const targetTeam = auth.keyId === 'root' && teamId ? teamId : auth.teamId;
+  if (auth.keyId === 'root' && !teamId) {
     return NextResponse.json({ error: 'teamId required when using root key' }, { status: 400 });
   }
 

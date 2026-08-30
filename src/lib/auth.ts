@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from './db';
 import { apiKeys } from './schema';
 import { eq } from 'drizzle-orm';
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 
 export interface AuthContext {
   teamId: string;
@@ -12,6 +12,16 @@ export interface AuthContext {
 
 function hashKey(key: string): string {
   return createHash('sha256').update(key).digest('hex');
+}
+
+/**
+ * Constant-time string comparison via SHA-256 digest to prevent timing attacks.
+ * Safe for keys of any length.
+ */
+export function compareKeys(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+  return timingSafeEqual(ha, hb);
 }
 
 /**
@@ -30,8 +40,8 @@ export async function authenticate(req: NextRequest): Promise<AuthContext | Next
     return NextResponse.json({ error: 'Missing API key' }, { status: 401 });
   }
 
-  // Check root key for bootstrapping
-  if (process.env.ROOT_API_KEY && rawKey === process.env.ROOT_API_KEY) {
+  // Check root key for bootstrapping (constant-time to prevent timing attacks)
+  if (process.env.ROOT_API_KEY && compareKeys(rawKey, process.env.ROOT_API_KEY)) {
     return { teamId: 'root', keyId: 'root', readOnly: false };
   }
 
@@ -56,8 +66,8 @@ export async function authenticate(req: NextRequest): Promise<AuthContext | Next
  * Returns auth context or null if invalid.
  */
 export async function authenticateKey(rawKey: string): Promise<AuthContext | null> {
-  // Check root key for bootstrapping
-  if (process.env.ROOT_API_KEY && rawKey === process.env.ROOT_API_KEY) {
+  // Check root key for bootstrapping (constant-time to prevent timing attacks)
+  if (process.env.ROOT_API_KEY && compareKeys(rawKey, process.env.ROOT_API_KEY)) {
     return { teamId: 'root', keyId: 'root', readOnly: false };
   }
 
