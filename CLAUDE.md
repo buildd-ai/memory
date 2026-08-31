@@ -1,17 +1,34 @@
-# Memory Service - Agent Instructions
+# buildd-ai/memory - Agent Instructions
+
+## The hosted service is retired — read this first
+
+This repo used to run a standalone memory service. **It was retired on
+2026-08-30.** Everything under `/api` returns `410 Gone`, `mem_*` keys no longer
+authenticate, and the data was migrated into buildd's own database. Memory is a
+built-in buildd feature now, reached through the `recall` and `learn` MCP tools.
+
+So: **do not add features to `src/`**, do not treat `memory.buildd.dev` as a live
+API, and do not point anything at it. `src/` is kept for history and to serve the
+tombstone (`src/middleware.ts`).
+
+**Do not archive or delete this repo.** It publishes
+`@buildd-ai/knowledge-store` to GitHub Packages, and at least one other repo in
+the org pins that package exactly. Archiving makes a repo read-only, so the
+publish workflow would stop being able to run.
 
 ## Quick Reference
 
-- **Repo**: `buildd-ai/memory` — standalone shared memory service
-- **Stack**: Next.js 15 (app router), Drizzle ORM, Postgres (Neon), Bun
-- **Domain**: `memory.buildd.dev`
+- **Repo**: `buildd-ai/memory` — library repo; the retired service is history
+- **Live code**: `packages/knowledge-store/` → `@buildd-ai/knowledge-store`
+- **Licence**: Apache-2.0 (`LICENSE`). Public *and* licensed; those are different
+  things and this repo was only the first for a long time.
+- **Stack**: TypeScript library; the retired service was Next.js 15 + Drizzle +
+  Postgres (Neon) + Bun
 - **Key paths**:
-  - API routes: `src/app/api/`
-  - MCP server (stdio): `src/mcp/server.ts`
-  - MCP server (HTTP): `src/app/api/mcp/route.ts`
-  - DB schema: `src/lib/schema.ts`
-  - DB client: `src/lib/db.ts`
-  - Auth: `src/lib/auth.ts`
+  - Library: `packages/knowledge-store/src/`
+  - Publish: `.github/workflows/publish-knowledge-store.yml`
+  - Tombstone: `src/middleware.ts`, `src/app/page.tsx`
+  - Retired service (history): `src/app/api/`, `src/lib/`, `src/mcp/`
 
 ## Git Workflow
 
@@ -71,7 +88,11 @@ CI will **fail** if you change schema.ts without generating/committing migration
 
 `src/lib/db.ts` uses lazy initialization (Proxy) so the module can be imported during `next build` without a live `DATABASE_URL`. The actual `neon()` connection is created on first property access at runtime.
 
-## Auth Model
+## Auth Model (retired — historical)
+
+None of this is reachable: the middleware returns 410 before any handler runs.
+Recorded because it explains the orphaned `mem_*` keys still sitting in users'
+`.mcp.json` files, and because reverting the tombstone would expose it again.
 
 API key auth (`mem_xxx` prefix). Keys are hashed and stored in the `api_keys` table.
 
