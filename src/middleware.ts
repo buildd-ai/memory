@@ -3,11 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * Decommission tombstone — 2026-08-30.
  *
- * This service was absorbed into buildd's own database. All 3,521 memories were
- * migrated and verified byte-identical, and buildd no longer calls this API at all,
- * so anything still reaching these routes is a client we cannot see: an old `mem_*`
- * key in someone's `.mcp.json` (25 were minted across 9 teams), or a link from docs
- * that have since been rewritten.
+ * This service was absorbed into buildd's own database. Every memory was migrated
+ * and verified byte-identical, and buildd no longer calls this API at all, so
+ * anything still reaching these routes is a client we cannot see: an old `mem_*`
+ * key in someone's `.mcp.json`, or a link from docs that have since been rewritten.
  *
  * Those clients get an explicit 410 with somewhere to go, rather than a dead
  * hostname and a connection error. That is the only reason this file returns a
