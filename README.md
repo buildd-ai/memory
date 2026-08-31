@@ -1,152 +1,71 @@
-# Buildd Memory
+# buildd-ai/memory
 
-Shared team memory for AI agents. Postgres-backed, MCP-native.
+A library repo. It publishes **`@buildd-ai/knowledge-store`** — a database-agnostic
+retrieval engine — to GitHub Packages.
 
-Unlike local-only memory tools, Buildd Memory is a **hosted service** that lets your entire team's agents share knowledge — gotchas, architectural decisions, patterns, and discoveries persist across sessions and machines.
+> ### The hosted service is retired
+>
+> This repo used to run a standalone memory service at `memory.buildd.dev`.
+> **That service was retired on 2026-08-30.** Every route under `/api` now
+> returns `410 Gone`, existing `mem_*` keys no longer authenticate, and the
+> memories were migrated into buildd's own database.
+>
+> Memory is a built-in buildd feature now: agents reach it through the `recall`
+> and `learn` MCP tools, scoped to a buildd team. There is no separate service to
+> sign up for, no second API key, and nothing to install. See
+> [buildd.dev](https://buildd.dev).
+>
+> The `src/` tree here is the retired service, kept for history. Nothing in it
+> should be treated as a live deployment target.
 
-## Quick Start
+## `@buildd-ai/knowledge-store`
 
-```bash
-# Install
-bun install
+The part of this repo that is alive. Extracted from `@buildd/core` so retrieval
+could be reused without dragging along a specific database or app framework.
 
-# Set up environment
-cp .env.example .env
-# Edit .env with your Neon Postgres URL and a root API key
+- Chunking, embedding and hybrid (vector + lexical) retrieval
+- Corpus-aware ranking: per-corpus authority weights and half-lives, with
+  recency×authority applied after reranking
+- Supersession, so a newer chunk can retire an older one without deleting it
+- `PgVectorStore` for Postgres/pgvector; the retrieval engine itself is
+  storage-agnostic
 
-# Run migrations
-bun db:migrate
+The contract is deliberately *shared code, not shared data*. Each consumer owns
+its own tables and namespaces; this package never reaches across a tenant
+boundary for you.
 
-# Start the server
-bun dev
-```
+### Installing
 
-## API
-
-All endpoints require authentication via `Authorization: Bearer <key>` or `x-api-key: <key>` header.
-
-### Memories
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/memories/context?project=` | Markdown-formatted memories for agent injection |
-| `GET` | `/api/memories/search?query=&type=&project=&files=&limit=&offset=` | Compact search (index only) |
-| `GET` | `/api/memories/batch?ids=id1,id2` | Fetch full content by IDs (max 20) |
-| `POST` | `/api/memories` | Create a memory |
-| `GET` | `/api/memories/:id` | Get single memory |
-| `PATCH` | `/api/memories/:id` | Update a memory |
-| `DELETE` | `/api/memories/:id` | Delete a memory |
-
-### Memory Types
-
-- `gotcha` — Things that are easy to get wrong
-- `architecture` — System structure and design
-- `pattern` — Recurring code patterns
-- `decision` — Why something was done a certain way
-- `discovery` — New findings about the codebase
-- `summary` — High-level overviews
-
-### API Keys
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/keys` | List API keys for your team |
-| `POST` | `/api/keys` | Create a new API key |
-
-### Health
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/health` | Health check |
-
-## MCP Integration
-
-Add to your `.mcp.json` (Claude Code, Cursor, etc.):
-
-```json
-{
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": ["@buildd/memory"],
-      "env": {
-        "MEMORY_API_URL": "https://memory.buildd.dev",
-        "MEMORY_API_KEY": "mem_your_key_here"
-      }
-    }
-  }
-}
-```
-
-Or run the MCP server directly:
-
-```bash
-MEMORY_API_URL=https://memory.buildd.dev MEMORY_API_KEY=mem_xxx bun run mcp
-```
-
-### MCP Actions
-
-The `memory` tool supports these actions:
-
-| Action | Params | Description |
-|--------|--------|-------------|
-| `context` | `{ project? }` | Load formatted memories for current session |
-| `search` | `{ query?, type?, project?, files?, limit?, offset? }` | Search memories |
-| `save` | `{ type, title, content, project?, tags?, files?, source? }` | Save a new memory |
-| `get` | `{ id }` | Get full memory content |
-| `update` | `{ id, ...fields }` | Update a memory |
-| `delete` | `{ id }` | Delete a memory |
-
-## Deploy
-
-Deploy as a standalone Vercel app:
-
-```bash
-vercel
-```
-
-Set environment variables in Vercel:
-- `DATABASE_URL` — Neon Postgres connection string
-- `ROOT_API_KEY` — Root key for bootstrapping team API keys
-
-## Architecture
+Published to **GitHub Packages**, not npmjs.com. That registry requires
+authentication even for public packages, so a consumer needs an `.npmrc`:
 
 ```
-buildd-memory/
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── memories/     # CRUD, search, batch, context
-│   │   │   ├── keys/         # API key management
-│   │   │   └── health/       # Health check
-│   │   ├── layout.tsx
-│   │   └── page.tsx          # Landing page
-│   ├── lib/
-│   │   ├── schema.ts         # Drizzle schema (memories + apiKeys)
-│   │   ├── db.ts             # Neon + Drizzle client
-│   │   ├── auth.ts           # API key authentication
-│   │   └── migrate.ts        # Migration runner
-│   └── mcp/
-│       └── server.ts         # MCP server (stdio transport)
-├── drizzle/                  # Generated migrations
-├── drizzle.config.ts
-└── package.json
+@buildd-ai:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-## Bootstrapping
+with `NODE_AUTH_TOKEN` set to a token carrying `read:packages`.
 
-1. Set `ROOT_API_KEY` in your environment (any strong secret)
-2. Use the root key to create team API keys:
-
-```bash
-curl -X POST https://memory.buildd.dev/api/keys \
-  -H "Authorization: Bearer $ROOT_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "dev-team", "teamId": "my-team"}'
+```
+npm install @buildd-ai/knowledge-store
 ```
 
-3. Distribute the returned `mem_xxx` key to your team's agents
+Pin it exactly. The package has already shipped one breaking change, and
+consumers in this org pin exact versions rather than ranges.
 
-## License
+### Publishing
 
-MIT
+`.github/workflows/publish-knowledge-store.yml`, on a version bump. Because that
+workflow lives here, **this repo must not be archived** — archiving makes a
+repository read-only and the publish workflow would stop being able to run.
+
+## Licence
+
+Apache-2.0 — see [LICENSE](LICENSE). Copyright the Buildd authors.
+
+Apache-2.0 rather than MIT for the explicit patent grant, which matters for a
+library intended to be embedded in other people's software.
+
+Note that "public" and "open source" are not the same thing: this repo was public
+for a long time with no licence, which meant all rights reserved and no legal
+right to use it. The licence is what changes that.

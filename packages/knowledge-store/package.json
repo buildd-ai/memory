@@ -38,5 +38,5 @@
     "url": "https://github.com/buildd-ai/memory.git",
     "directory": "packages/knowledge-store"
   },
-  "license": "UNLICENSED"
+  "license": "Apache-2.0"
 }
