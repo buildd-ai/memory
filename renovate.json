@@ -2,5 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "< 7.0.0",
+      "description": "TypeScript v7 is a native-first (Go) rewrite that dropped lib/typescript.js, which Next.js needs to detect/load TypeScript. Next.js only has experimental TS7 support (vercel/next.js#95639) and this repo runs Next.js 15. Remove this constraint once Next.js ships stable TS7 support and the upgrade has been re-tested."
+    }
   ]
 }
